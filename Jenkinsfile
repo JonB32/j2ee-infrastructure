@@ -11,6 +11,7 @@ pipeline {
             withCredentials([string(credentialsId: 'AWS Secret', variable: 'AWS_SECRET_ACCESS_KEY')]) {
               sh 'aws cloudformation create-stack --stack-name cfn-ec2-${uuid} --template-body file://./cf-ec2-redhat-appserver0.template'
             }
+          }
         }
       }
     }
