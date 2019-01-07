@@ -3,7 +3,7 @@
 
   "Mappings" : {
     "RegionMap" : {
-      "us-east-1"      : { "AMI" : "ami-0080e4c5bc078760e" }
+      "us-east-1"      : { "AMI" : "ami-009d6802948d06e52" }
     }
   },
 
@@ -114,7 +114,7 @@
           "#Transform localhost ip to public ip for wildfly conf file\n",
           "IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)",
           "\n",
-          "sed -i 's/127.0.0.1/$IP/g' /opt/wildfly-9.0.2.Final/standalone/configuration/standalone.xml",
+          "sed -i 's/127.0.0.1/${IP}/g' /opt/wildfly-9.0.2.Final/standalone/configuration/standalone.xml",
           "\n",
           "systemctl daemon-reload\n",
           "systemctl start wildfly.service\n",
