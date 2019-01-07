@@ -53,24 +53,24 @@
                   "setenv JAVA_HOME /usr/java/jdk1.8.0_192-amd64",
                   "setenv JRE_HOME /usr/java/jdk1.8.0_192-amd64/jre",
                   "setenv CLASSPATH .:/usr/java/jdk1.8.0_192-amd64/lib/tools.jar:/usr/java/jdk1.8.0_192-amd64/jre/lib/rt.jar"
-                ]]}
+                ]]},
+                "mode": "000755"
               },
-              "mode": "000755"
-            },
-            "/lib/systemd/system/wildfly.service": {
-              "content": { "Fn::Join": ["\n", [
-                "[Unit]",
-                "Description=WildFly Server",
-                "After=httpd.service",
-                "\n",
-                "[Service]",
-                "StartLimitInterval=0",
-                "Type=simple",
-                "Restart=always",
-                "RestartSec=1",
-                "User=root",
-                "ExecStart=/opt/wildfly-9.0.2.Final/bin/standalone.sh"
-              ]]}
+              "/lib/systemd/system/wildfly.service": {
+                "content": { "Fn::Join": ["\n", [
+                  "[Unit]",
+                  "Description=WildFly Server",
+                  "After=httpd.service",
+                  "\n",
+                  "[Service]",
+                  "StartLimitInterval=0",
+                  "Type=simple",
+                  "Restart=always",
+                  "RestartSec=1",
+                  "User=root",
+                  "ExecStart=/opt/wildfly-9.0.2.Final/bin/standalone.sh"
+                ]]}
+              }
             }
           }
         }
@@ -95,7 +95,7 @@
           "\n",
           "#Install JBoss Dependencies\n",
           "yum update -y \n",
-          "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackName" },
+          "/opt/aws/bin/cfn-init -v -s ", { "Ref" : "AWS::StackName" },
 					"    -r Ec2Instance  --region ", { "Ref" : "AWS::Region" },
 					"\n\n",
           "cd /opt\n",
