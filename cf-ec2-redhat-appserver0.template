@@ -17,6 +17,64 @@
   "Resources": {
     "Ec2Instance": {
       "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment": "Initial JBoss setup for Quizzy quiz",
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "yum": {
+                "httpd": [],
+                "wget": []
+              }
+            },
+            "files": {
+              "/etc/profile.d/java.sh": {
+                "content": { "Fn::Join": ["\n", [
+                  "if ! echo ${PATH} | grep -q /usr/java/jdk1.8.0_192-amd64/bin ; then",
+                  "   export PATH=/usr/java/jdk1.8.0_192-amd64/bin:${PATH}",
+                  "fi",
+                  "if ! echo ${PATH} | grep -q /usr/java/jdk1.8.0_192-amd64/jre/bin ; then",
+                  "   export PATH=/usr/java/jdk1.8.0_192-amd64/jre/bin:${PATH}",
+                  "fi",
+                  "export JAVA_HOME=/usr/java/jdk1.8.0_192-amd64",
+                  "export JRE_HOME=/usr/java/jdk1.8.0_192-amd64/jre",
+                  "export CLASSPATH=.:/usr/java/jdk1.8.0_192-amd64/lib/tools.jar:/usr/java/jdk1.8.0_192-amd64/jre/lib/rt.jar"
+                ]]},
+                "mode": "000755"
+              },
+              "/etc/profile.d/java.csh": {
+                "content": { "Fn::Join": ["\n", [
+                  "if ( \"${path}\" !~ /usr/java/jdk1.8.0_192-amd64/bin* ) then",
+                  "   set path = ( /usr/java/jdk1.8.0_192-amd64/bin $path )",
+                  "endif",
+                  "if ( \"${path}\" !~ /usr/java/jdk1.8.0_192-amd64/jre/bin* ) then",
+                  "   set path = ( /usr/java/jdk1.8.0_192-amd64/jre/bin $path )",
+                  "endif",
+                  "setenv JAVA_HOME /usr/java/jdk1.8.0_192-amd64",
+                  "setenv JRE_HOME /usr/java/jdk1.8.0_192-amd64/jre",
+                  "setenv CLASSPATH .:/usr/java/jdk1.8.0_192-amd64/lib/tools.jar:/usr/java/jdk1.8.0_192-amd64/jre/lib/rt.jar"
+                ]]}
+              },
+              "mode": "000755"
+            },
+            "/lib/systemd/system/wildfly.service": {
+              "content": { "Fn::Join": ["\n", [
+                "[Unit]",
+                "Description=WildFly Server",
+                "After=httpd.service",
+                "\n",
+                "[Service]",
+                "StartLimitInterval=0",
+                "Type=simple",
+                "Restart=always",
+                "RestartSec=1",
+                "User=root",
+                "ExecStart=/opt/wildfly-9.0.2.Final/bin/standalone.sh"
+              ]]}
+            }
+          }
+        }
+      },
       "Properties": {
         "DisableApiTermination": "false",
         "ImageId": {"Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
@@ -30,7 +88,42 @@
             "GroupSet": [ "sg-02276e111f82b93f2" ],
             "AssociatePublicIpAddress": true
           }
-        ]
+        ],
+        "Tags": [ {"Key": "Server", "Value": "AppServer"}],
+        "UserData": { "Fn::Base64" : { "Fn::Join": ["", [
+          "#!/bin/bash\n",
+          "\n",
+          "#Install JBoss Dependencies\n",
+          "yum update -y \n",
+          "cd /opt\n",
+          "#download the oracle java 7 rpm \n",
+					"wget --no-cookies --no-check-certificate ",
+					"    --header 'Cookie: oraclelicense=accept-securebackup-cookie' ",
+					"    'https://download.oracle.com/otn-pub/java/jdk/8u192-b12/750e1c8617c5452694857ad95c3ee230/jdk-8u192-linux-x64.rpm'\n",
+          "yum localinstall -y jdk-8u192-linux-x64.rpm\n",
+          "\n",
+          "#Update Java alternatives\n",
+          "alternatives --install /usr/bin/java java /usr/java/jdk1.8.0_192-amd64/jre/bin/java 2\n",
+          "alternatives --install /usr/bin/javac javac /usr/java/jdk1.8.0_192-amd64/jre/bin/javac 2\n",
+          "alternatives --set jar /usr/java/jdk1.8.0_192-amd64/bin/jar\n",
+          "alternatives --set javac /usr/java/jdk1.8.0_192-amd64/bin/javac\n",
+          "\n",
+          "#Install JBoss/WildFly (as found in https://www.rosehosting.com/blog/how-to-install-wildfly-14-on-centos-7/) \n",
+          "wget https://download.jboss.org/wildfly/9.0.2.Final/wildfly-9.0.2.Final.tar.gz",
+          "\n",
+          "tar -zxvf wildfly-9.0.2.Final.tar.gz\n",
+          "echo 'JBOSS_HOME=\"/opt/wildfly-9.0.2.Final\"' >> /opt/wildfly-9.0.2.Final/bin/standalone.conf",
+          "echo 'JAVA_HOME=\"/usr/java/jdk1.8.0_192-amd64\"' >> /opt/wildfly-9.0.2.Final/bin/standalone.conf",
+          "\n",
+          "#Transform localhost ip to public ip for wildfly conf file\n",
+          "IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)",
+          "\n",
+          "sed -i 's/127.0.0.1/$IP/g' /opt/wildfly-9.0.2.Final/standalone/configuration/standalone.xml",
+          "\n",
+          "systemctl daemon-reload\n",
+          "systemctl start wildfly.service\n",
+          "systemctl enable wildfly.service"
+        ]]}}
       }
     }
   },
